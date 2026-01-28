@@ -165,7 +165,7 @@ def train_and_evaluate(
     )
 
     model = RandomForestClassifier(
-        n_estimators=100,
+        n_estimators=200,
         random_state=seed,
     )
     model.fit(x_train, y_train)
