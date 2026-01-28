@@ -1,0 +1,50 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - ".gitignore"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semantic_version:
+    name: Generate Version
+    uses: ./.github/workflows/reusable_semantic_version.yml
+    with:
+      tag_prefix: v
+      module_path: .
+    secrets:
+      GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create_tag:
+    name: Create Tag
+    needs: [semantic_version]
+    if: needs.semantic_version.outputs.changed_path == 'true'
+    permissions: write-all
+    uses: ./.github/workflows/reusable_create_tag.yml
+    with:
+      tag: ${{ needs.semantic_version.outputs.version }}
+      tag_message: "Release ${{ needs.semantic_version.outputs.version }}"
+      on_tag_exists: skip
+    secrets:
+      GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create_release:
+    name: Create Release
+    needs: [semantic_version, create_tag]
+    permissions: write-all
+    uses: ./.github/workflows/reusable_create_release.yml
+    with:
+      project_name: gitops-lab
+      project_dir: .
+      version: ${{ needs.semantic_version.outputs.sem_version }}
+      changelog: "Automated release for version ${{ needs.semantic_version.outputs.version }}"
+      tag: ${{ needs.semantic_version.outputs.version }}
+    secrets:
+      GIT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
