@@ -46,36 +46,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def generate_synthetic_data(
-    n_samples: int, seed: int
-) -> pd.DataFrame:
+def generate_synthetic_data(n_samples: int, seed: int) -> pd.DataFrame:
     """Genera datos sinteticos de churn de clientes."""
     rng = np.random.default_rng(seed)
 
-    customer_ids: List[str] = [
-        f"CUST-{i:05d}" for i in range(1, n_samples + 1)
-    ]
-    tenure_months: np.ndarray = rng.integers(
-        1, 73, size=n_samples
-    )
-    monthly_charges: np.ndarray = rng.uniform(
-        20.0, 120.0, size=n_samples
-    )
+    customer_ids: List[str] = [f"CUST-{i:05d}" for i in range(1, n_samples + 1)]
+    tenure_months: np.ndarray = rng.integers(1, 73, size=n_samples)
+    monthly_charges: np.ndarray = rng.uniform(20.0, 120.0, size=n_samples)
     noise: np.ndarray = rng.normal(0, 50, size=n_samples)
-    total_charges: np.ndarray = (
-        tenure_months * monthly_charges + noise
-    )
+    total_charges: np.ndarray = tenure_months * monthly_charges + noise
     total_charges = np.maximum(total_charges, 0.0)
 
     contract_options = ["month-to-month", "one-year", "two-year"]
-    contract_type: np.ndarray = rng.choice(
-        contract_options, size=n_samples
-    )
+    contract_type: np.ndarray = rng.choice(contract_options, size=n_samples)
 
     internet_options = ["dsl", "fiber_optic", "no"]
-    internet_service: np.ndarray = rng.choice(
-        internet_options, size=n_samples
-    )
+    internet_service: np.ndarray = rng.choice(internet_options, size=n_samples)
 
     payment_options = [
         "electronic_check",
@@ -83,19 +69,13 @@ def generate_synthetic_data(
         "bank_transfer",
         "credit_card",
     ]
-    payment_method: np.ndarray = rng.choice(
-        payment_options, size=n_samples
-    )
+    payment_method: np.ndarray = rng.choice(payment_options, size=n_samples)
 
-    num_support_tickets: np.ndarray = rng.integers(
-        0, 11, size=n_samples
-    )
+    num_support_tickets: np.ndarray = rng.integers(0, 11, size=n_samples)
 
     # Logica realista de churn
     churn_prob = np.full(n_samples, 0.15)
-    churn_prob = np.where(
-        contract_type == "month-to-month", 0.40, churn_prob
-    )
+    churn_prob = np.where(contract_type == "month-to-month", 0.40, churn_prob)
     churn_prob = np.where(
         payment_method == "electronic_check",
         np.maximum(churn_prob, 0.35),
@@ -109,9 +89,7 @@ def generate_synthetic_data(
         churn_prob,
     )
     long_tenure = tenure_months > 36
-    churn_prob = np.where(
-        long_tenure, churn_prob * 0.5, churn_prob
-    )
+    churn_prob = np.where(long_tenure, churn_prob * 0.5, churn_prob)
 
     churned: np.ndarray = rng.binomial(1, churn_prob)
 
@@ -136,9 +114,7 @@ def prepare_features(
 ) -> Tuple[pd.DataFrame, pd.Series]:
     """Prepara features y target para entrenamiento."""
     target: pd.Series = data["churned"]
-    features_df: pd.DataFrame = data.drop(
-        columns=["customer_id", "churned"]
-    )
+    features_df: pd.DataFrame = data.drop(columns=["customer_id", "churned"])
     features_encoded: pd.DataFrame = pd.get_dummies(
         features_df,
         columns=[
@@ -165,7 +141,7 @@ def train_and_evaluate(
     )
 
     model = RandomForestClassifier(
-        n_estimators=100,
+        n_estimators=200,
         random_state=seed,
     )
     model.fit(x_train, y_train)
@@ -173,24 +149,16 @@ def train_and_evaluate(
     y_pred: np.ndarray = model.predict(x_test)
 
     metrics: Dict[str, float] = {
-        "accuracy": round(
-            float(accuracy_score(y_test, y_pred)), 4
-        ),
+        "accuracy": round(float(accuracy_score(y_test, y_pred)), 4),
         "precision": round(
-            float(
-                precision_score(y_test, y_pred, zero_division=0)
-            ),
+            float(precision_score(y_test, y_pred, zero_division=0)),
             4,
         ),
         "recall": round(
-            float(
-                recall_score(y_test, y_pred, zero_division=0)
-            ),
+            float(recall_score(y_test, y_pred, zero_division=0)),
             4,
         ),
-        "f1_score": round(
-            float(f1_score(y_test, y_pred, zero_division=0)), 4
-        ),
+        "f1_score": round(float(f1_score(y_test, y_pred, zero_division=0)), 4),
     }
     return model, metrics
 
@@ -207,9 +175,7 @@ def save_artifacts(
     joblib.dump(model, model_path)
     print(f"  Modelo guardado en: {model_path}")
 
-    metadata_path = os.path.join(
-        output_dir, "model_metadata.json"
-    )
+    metadata_path = os.path.join(output_dir, "model_metadata.json")
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2, ensure_ascii=False)
     print(f"  Metadatos guardados en: {metadata_path}")
@@ -224,15 +190,11 @@ def main() -> None:
     print("=" * 60)
 
     print(
-        f"\nGenerando {args.n_samples} muestras sinteticas "
-        f"(semilla={args.seed})..."
+        f"\nGenerando {args.n_samples} muestras sinteticas " f"(semilla={args.seed})..."
     )
     data = generate_synthetic_data(args.n_samples, args.seed)
     print(f"  Datos generados: {data.shape[0]} filas")
-    print(
-        f"  Tasa de churn: "
-        f"{data['churned'].mean():.2%}"
-    )
+    print(f"  Tasa de churn: " f"{data['churned'].mean():.2%}")
 
     print("\nPreparando features...")
     features, target = prepare_features(data)
@@ -240,9 +202,7 @@ def main() -> None:
     print(f"  Numero de features: {len(feature_list)}")
 
     print("\nEntrenando modelo RandomForest...")
-    model, metrics = train_and_evaluate(
-        features, target, args.seed
-    )
+    model, metrics = train_and_evaluate(features, target, args.seed)
 
     print("\nMetricas de evaluacion:")
     for metric_name, metric_value in metrics.items():

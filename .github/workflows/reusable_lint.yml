@@ -77,7 +77,7 @@ jobs:
 
       - name: Run Flake8
         if: inputs.checkFlake8 && always() && steps.changed_files.outputs.files != '0'
-        run: flake8 --color always --toml-config ${{ inputs.pyProjectDirectory }} ${{ steps.changed_files.outputs.files }}
+        run: flake8 --color always ${{ steps.changed_files.outputs.files }}
 
       - name: Run Isort
         if: inputs.checkIsort && always() && steps.changed_files.outputs.files != '0'
